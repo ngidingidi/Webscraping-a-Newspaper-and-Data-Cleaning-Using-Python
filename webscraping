@@ -1,0 +1,179 @@
+Reading newspaper headlines, especially stories from my home country of ESwatini or Swaziland is something I do on a daily basis. It helps me keep in touch with what is going in the country and this comes in handy especially for me since I live in the USA. In this article, we will scrape newspaper headlines using a few lines of Python code. We will also perform data cleaning and formatting the data into a dataframe which is easier to read.
+
+This article was written on 3/13/2020
+
+We start by importing the necessary libraries. We will use the libraries of BeautifulSoup and requests
+
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup
+
+We start by making a webpage request to extract its entire contents
+
+url = 'http://times.co.sz'
+response = requests.get(url)
+
+We then use the BeautifulSoup library to parse the html. We store this in a variable we name 'soup'. You can name it anything you like.
+
+Python's 'html.parser' parses the html data the same way a web browser does.
+
+soup = BeautifulSoup(response.text, 'html.parser')
+Next we go to the webpage, and right click on a story's summary and click 'Inspect'. This brings up the html of the page. In the example below, we see that the interesting story is contained in the 'span' tag and 'summary' class
+
+image.png
+
+We use the find_all function to hone in on the tag and class of interest to help us grab the information we want. This returns a BeautifulSoup element which is a subclass of a list and printing the first 2 summary stories shows the stories together with the html elements
+
+1
+news_summary = soup.find_all('span', class_='summary')
+2
+print(type(news_summary))
+3
+print(news_summary[:2])
+<class 'bs4.element.ResultSet'>
+[<span class="summary">MBABANE – There are calls for government to consider banning foreign nationals from coming into the country and shut down the ports of entry to</span>, <span class="summary">MBABANE – Don’t touch pension benefits except where that judgment is in respect of maintenance!
+The Supreme Court has declared that pension benefits of public officers</span>]
+We use .text method? to extract the text without the html and append that to a list. As shown below, the first 2 news summaries are now printed out without the html, which is very nice
+
+1
+news = []
+2
+​
+3
+for content in news_summary:
+4
+    news.append(content.text)
+5
+    
+6
+print(news[:2])
+['MBABANE – There are calls for government to consider banning foreign nationals from coming into the country and shut down the ports of entry to', 'MBABANE – Don’t touch pension benefits except where that judgment is in respect of maintenance!\r\nThe Supreme Court has declared that pension benefits of public officers']
+In addition, we want to print out the full article hyperlinks so that we can copy and paste them into a web browser to read the full contents of a story we find interesting.
+
+Again, we go to the webpage and right click on the 'Full Story' hyperlink to view the html. We see that the full story is contained in a 'div' tag and 'article_link' class.
+
+image.png
+
+1
+article_link = soup.find_all('div', class_='article_link')
+2
+print(article_link[:2])
+[<div class="article_link">
+<a href="news/127478-calls-to-ban-foreign-nationals-entry-points-shutdown.html">  Full story </a>
+</div>, <div class="article_link">
+<a href="news/127477-appeal-to-withhold-head-teacher%E2%80%99s-pension-dismissed.html">  Full story </a>
+</div>]
+We loop through the hyperlinks and use a['href'] to extract just the url for the full story
+
+1
+links = []
+2
+for hyperlink in article_link:
+3
+    links.append(hyperlink.a['href'])
+4
+​
+5
+print(links[:2])
+['news/127478-calls-to-ban-foreign-nationals-entry-points-shutdown.html', 'news/127477-appeal-to-withhold-head-teacher%E2%80%99s-pension-dismissed.html']
+As you can see if you copy and paste the urls above, they won't work. Clicking on the full story indicates that the urls are missing the following portion "http://www.times.co.sz/"
+
+We need to append that portion for them to work. We loop throught the links and append the missing string and voila, we now have the full working urls for the full stories
+
+1
+links_2 = []
+2
+url_add = 'http://www.times.co.sz/'
+3
+​
+4
+for e in links:
+5
+    links_2.append(url_add + e)
+6
+​
+7
+print(links_2[:2])
+['http://www.times.co.sz/news/127478-calls-to-ban-foreign-nationals-entry-points-shutdown.html', 'http://www.times.co.sz/news/127477-appeal-to-withhold-head-teacher%E2%80%99s-pension-dismissed.html']
+Lastly we combine the 2 lists in a dataframe to make it easier to read. We call this new dataframe 'news_dataframe'
+
+1
+news_dataframe = pd.DataFrame(
+2
+    {'NEWS SUMMARY': news,
+3
+     'URL': links_2
+4
+    })
+We print out the dataframe and see the summary news together with the urls which can be copied and pasted on a web browser to explore full stories of interest
+
+1
+print(type(news_dataframe))
+<class 'pandas.core.frame.DataFrame'>
+1
+news_dataframe.head()
+NEWS SUMMARY	URL
+0	MBABANE – There are calls for government to co...	http://www.times.co.sz/news/127478-calls-to-ba...
+1	MBABANE – Don’t touch pension benefits except ...	http://www.times.co.sz/news/127477-appeal-to-w...
+2	LOBAMBA – There is a need to check believers w...	http://www.times.co.sz/news/127476-easters-%E2...
+3	\n\t\t\t\tMBABANE – There are calls for govern...	http://www.times.co.sz/news/127478-calls-to-ba...
+4	\n\t\t\t\tTHE fragile economy of Eswatini and ...	http://www.times.co.sz/just-thinking/127463-pu...
+As seen above, we cannot see the full stories and urls. We will use .values method to print out the full contents
+
+1
+print(news_dataframe.values)
+[['MBABANE – There are calls for government to consider banning foreign nationals from coming into the country and shut down the ports of entry to'
+  'http://www.times.co.sz/news/127478-calls-to-ban-foreign-nationals-entry-points-shutdown.html']
+ ['MBABANE – Don’t touch pension benefits except where that judgment is in respect of maintenance!\r\nThe Supreme Court has declared that pension benefits of public officers'
+  'http://www.times.co.sz/news/127477-appeal-to-withhold-head-teacher%E2%80%99s-pension-dismissed.html']
+ ['LOBAMBA – There is a need to check believers who will attend Easter services at Somhlolo for the coronavirus. This was a submission made by'
+  'http://www.times.co.sz/news/127476-easters-%E2%80%98test-christians-at-somhlolo%E2%80%99.html']
+ ['\n\t\t\t\tMBABANE – There are calls for government to consider banning foreign nationals from coming into the country and shut down the ports of entry to\n\t\t\t'
+  'http://www.times.co.sz/news/127478-calls-to-ban-foreign-nationals-entry-points-shutdown.html']
+ ['\n\t\t\t\tTHE fragile economy of Eswatini and the resilience of emaSwati are about to be tested by yet another crisis; the coronavirus, dubbed Covid-19.\r\nThis virus is\n\t\t\t'
+  'http://www.times.co.sz/just-thinking/127463-put-to-the-test.html']
+ ['\n\t\t\t\tMBABANE – Eswatini’s gross reserves remain below the satisfactory three months’ worth of imports cover.\r\nThis follows the 2.4 per cent decline recorded last month. According\n\t\t\t'
+  'http://www.times.co.sz/business/127468-eswatini-gross-reserves-down-2-4.html']
+ ['\n\t\t\t\t“PRESSURE pushing down on me, pressure pushing down on you, no man asks for under pressure, that burns a building down, splits a family in\n\t\t\t'
+  'http://www.times.co.sz/feature/127464-under-pressure.html']
+ ['\n\t\t\t\tMBABANE – In the middle of the hysteria centred on the coronavirus outbreak which has spread worldwide some people are calling for the postponement of\n\t\t\t'
+  'http://www.times.co.sz/entertainment/127469-public-%E2%80%98concerned%E2%80%99over-bushfire-2020.html']
+ ['\n\t\t\t\tMBABANE – Green Mamba’s coach Caleb Ngwenya has collected E240 000 in earnings after helping the Correctional Services outfit win both the Ingwenyama Cup and\n\t\t\t'
+  'http://www.times.co.sz/sports/127474-caleb-e240-000-richer.html']
+ ['\n\t\t\t\tSir,Thank you for allowing me to voice and echo the deep meaning of belittled yet vital words of encouragement to Eswatini citizens. It has reached\n\t\t\t'
+  'http://www.times.co.sz/letters/127466-encouragement-to-eswatini-citizens.html']
+ ['MBABANE – There are calls for government to consider banning foreign nationals from coming into the country and shut down the ports of entry to'
+  'http://www.times.co.sz/news/127478-calls-to-ban-foreign-nationals-entry-points-shutdown.html']
+ ['MBABANE – Don’t touch pension benefits except where that judgment is in respect of maintenance!\r\nThe Supreme Court has declared that pension benefits of public officers'
+  'http://www.times.co.sz/news/127477-appeal-to-withhold-head-teacher%E2%80%99s-pension-dismissed.html']
+ ['LOBAMBA – There is a need to check believers who will attend Easter services at Somhlolo for the coronavirus. This was a submission made by'
+  'http://www.times.co.sz/news/127476-easters-%E2%80%98test-christians-at-somhlolo%E2%80%99.html']
+ ['MATSAPHA – Finally, the suspended ESWACAA Director of Marketing and Communications, Sabelo Dlamini, has tendered his official plea to the SODV charge he is facing.\r\nDlamini'
+  'http://www.times.co.sz/news/127475-accuser%E2%80%99s-statements-clash-%E2%80%93-eswacaa%E2%80%99s-sabelo.html']
+ ['MBABANE – Green Mamba’s coach Caleb Ngwenya has collected E240 000 in earnings after helping the Correctional Services outfit win both the Ingwenyama Cup and'
+  'http://www.times.co.sz/sports/127474-caleb-e240-000-richer.html']
+ ['MBABANE – The African Union Sports Council Region 5 advised all its member States of its decision to suspend all its activities scheduled for between'
+  'http://www.times.co.sz/sports/127473-ausc-region-5-suspends-all-activities.html']
+ ['MBABANE – The EswatiniBank has dressed up the quarterfinalists of the 17th edition of the annual sponsored tournament.\r\nThe teams in defending champions Young Buffaloes, Mbabane'
+  'http://www.times.co.sz/sports/127472-eswatinibank-dresses-quarterfinalists.html']
+ ['MBABANE – MTN Eswatini CEO Wandile Mtshali will be part of the 68 golfers who will play in the March edition of the MTN Monthly'
+  'http://www.times.co.sz/sports/127471-mtn-ceo-for-monthly-masters.html']
+ ['MBABANE – Prevention is better than cure. The reality of the matter is that coronavirus is not a myth and we all have to be'
+  'http://www.times.co.sz/sports/127470-active-matrix-gym-coronavirus-cognisant.html']
+ ['MBABANE – In the middle of the hysteria centred on the coronavirus outbreak which has spread worldwide some people are calling for the postponement of'
+  'http://www.times.co.sz/entertainment/127469-public-%E2%80%98concerned%E2%80%99over-bushfire-2020.html']
+ ['MBABANE – Eswatini’s gross reserves remain below the satisfactory three months’ worth of imports cover.\r\nThis follows the 2.4 per cent decline recorded last month. According'
+  'http://www.times.co.sz/business/127468-eswatini-gross-reserves-down-2-4.html']
+ ['\xa0MBABANE – Government has run out of trading licence certificate papers in two regions.\r\nThis is per a correspondence from the Ministry of Commerce, Industry and'
+  'http://www.times.co.sz/business/127467-trading-licence-certificates-shortage.html']
+ ['Sir,Thank you for allowing me to voice and echo the deep meaning of belittled yet vital words of encouragement to Eswatini citizens. It has reached'
+  'http://www.times.co.sz/letters/127466-encouragement-to-eswatini-citizens.html']
+ ['Sir,Hey! I don’t care who you are ,what race, what gender ,I don’t care about any of that but what I do know is that'
+  'http://www.times.co.sz/letters/127465-you-are-more-than-capable.html']
+ ['“PRESSURE pushing down on me, pressure pushing down on you, no man asks for under pressure, that burns a building down, splits a family in'
+  'http://www.times.co.sz/feature/127464-under-pressure.html']]
+CONCLUSION
+It would be great if the urls can be made clickable. That would save time and avoid copy and paste. Please leave your comments or share your code if you know how this can be accomplished.
+
+Enjoy!
+
